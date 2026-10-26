@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вікторина</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+
+  <header>
+    <h1>Вікторина</h1>
+    <nav>
+      <a href="#current-question">Питання</a>
+      <a href="#history">Результати</a>
+    </nav>
+  </header>
+  
+ <main>
+    <!-- Крок 6: Навігаційне меню з посиланнями на хеші -->
+    <nav style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f4f4f9; border-radius: 8px;">
+      <a href="#/" style="margin-right: 20px; font-weight: bold; text-decoration: none; color: var(--primary-color);">🏠 Головна</a>
+      <a href="#/results" style="font-weight: bold; text-decoration: none; color: var(--primary-color);">🏆 Історія результатів</a>
+    </nav>
+
+    <!-- Головний контейнер Vue-застосунку -->
+    <div id="app">
+
+      <!-- МАРШРУТ 1: ГОЛОВНА СТОРІНКА (#/) -->
+      <section v-if="currentView === 'Home'" style="text-align: center; padding: 40px 0;">
+        <h2>Ласкаво просимо до Вікторини!</h2>
+        <p>Перевірте свої знання у 10 випадкових питаннях.</p>
+        <button @click="startNewGame" style="padding: 12px 25px; font-size: 1.1em; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">
+          ▶ Почати нову гру
+        </button>
+      </section>
+
+      <!-- МАРШРУТ 2: ПРОЦЕС ГРИ (#/quiz) -->
+      <section v-if="currentView === 'Quiz'">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <p v-if="isLoading" style="font-weight: bold; color: var(--accent-color);">Завантаження питань з сервера...</p>
+          <p v-if="errorMessage" style="color: red; font-weight: bold;">{{ errorMessage }}</p>
+        </div>
+
+        <div v-if="quizStarted && !quizFinished" id="quiz-content">
+          <div class="progress-container">
+            <span class="question-number">Питання {{ currentQuestionIndex + 1 }} з {{ quizQuestions.length }}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
+            </div>
+          </div>
+
+          <quiz-question 
+            :question="currentQuestion.question"
+            :options="currentQuestion.options"
+            :correct-answer="currentQuestion.answer"
+            :has-answered="hasAnswered"
+            :selected-answer="selectedAnswer"
+            @answer="checkAnswer"
+            @timeout="checkAnswer(null)"
+          ></quiz-question>
+          
+          <p v-if="hasAnswered" id="result-message" :style="{ color: isCorrect ? 'green' : 'red', fontWeight: 'bold', marginTop: '15px' }">
+            {{ isCorrect ? 'Правильно ✔' : (selectedAnswer === null ? 'Час вийшов ⌛ (Правильна: ' + currentQuestion.answer + ')' : 'Неправильно ✘ (Правильна: ' + currentQuestion.answer + ')') }}
+          </p>
+
+          <div style="margin-top: 20px;">
+            <button v-if="hasAnswered" @click="nextQuestion" style="padding: 10px 20px; background-color: var(--accent-color); color: black; border: none; border-radius: 6px; cursor: pointer;">
+              Наступне питання
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- МАРШРУТ 3: ІСТОРІЯ РЕЗУЛЬТАТІВ (#/results) -->
+      <section v-if="currentView === 'Results'">
+        <h2 style="text-align: center;">Найкращі результати</h2>
+        <div v-if="resultsHistory.length === 0" style="text-align: center; color: #777;">Історія порожня. Зіграйте першу гру!</div>
+        <div class="cards" style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+          <article v-for="res in resultsHistory" :key="res.id" style="width: 100%; max-width: 400px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
+            <h3 style="margin: 0 0 10px 0; color: var(--primary-color);">Результат: {{ res.score }} з {{ res.total }}</h3>
+            <!-- Посилання на деталі маршруту з параметром -->
+            <a :href="'#/results/' + res.id" style="text-decoration: none; color: #007bff; font-weight: bold;">Детальніше ➔</a>
+          </article>
+        </div>
+      </section>
+
+      <!-- МАРШРУТ 4: ДЕТАЛІ ОДНОГО РЕЗУЛЬТАТУ (#/results/:id) (Крок 8) -->
+      <section v-if="currentView === 'ResultDetail'" style="text-align: center; padding: 30px;">
+        <h2>Деталі гри #{{ routeParams.id }}</h2>
+        <div v-if="selectedResult" style="background: #e9ecef; padding: 20px; border-radius: 10px; display: inline-block;">
+          <h1 style="color: var(--primary-color); font-size: 3em; margin: 0;">{{ selectedResult.score }} / {{ selectedResult.total }}</h1>
+          <p style="font-size: 1.2em; color: #555;">Дата проходження: <strong>{{ selectedResult.date }}</strong></p>
+        </div>
+        <div v-else style="color: red;">Результат не знайдено!</div>
+        <br><br>
+        <a href="#/results" style="padding: 10px 20px; background: #ddd; text-decoration: none; color: black; border-radius: 5px;">⬅ Повернутися до списку</a>
+      </section>
+
+      <!-- МАРШРУТ 5: 404 NOT FOUND (Крок 9) -->
+      <section v-if="currentView === 'NotFound'" style="text-align: center; padding: 50px;">
+        <h1 style="font-size: 4em; color: red; margin: 0;">404</h1>
+        <h2>Сторінку не знайдено</h2>
+        <p>Вибачте, але такого маршруту не існує.</p>
+        <a href="#/" style="padding: 10px 20px; background: var(--primary-color); color: white; text-decoration: none; border-radius: 5px;">Повернутися на головну</a>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>Авторство: [Дяченко Богдан] &copy; 2026</p>
+  </footer>
+
+  
+</body>
+</html>
