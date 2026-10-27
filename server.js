@@ -9,18 +9,8 @@ app.use(cors());
 // Роздаємо статичні файли (index.html, css, js) з поточної папки
 app.use(express.static(__dirname));
 
-// Локальний масив питань, який замінює зовнішнє API
+// РІВНО 5 ЛОКАЛЬНИХ ПИТАНЬ (як заявлено у звіті)
 const localQuestions = [
-  {
-    category: "Hacking",
-    type: "multiple",
-    difficulty: "easy",
-    // Ось наш XSS-вектор:
-    question: "Test XSS: <img src=x onerror=\"alert('Увага! XSS Вразливість!')\">",
-    correct_answer: "Yes",
-    incorrect_answers: ["No", "Maybe", "I don't know"]
-  },
-  
   {
     category: "Science",
     type: "multiple",
@@ -44,18 +34,33 @@ const localQuestions = [
     question: "What is the capital of France?",
     correct_answer: "Paris",
     incorrect_answers: ["London", "Berlin", "Madrid"]
+  },
+  {
+    category: "Film",
+    type: "multiple",
+    difficulty: "hard",
+    question: "Who directed the movie 'Inception'?",
+    correct_answer: "Christopher Nolan",
+    incorrect_answers: ["Steven Spielberg", "Quentin Tarantino", "Martin Scorsese"]
+  },
+  {
+    category: "General Knowledge",
+    type: "multiple",
+    difficulty: "medium",
+    question: "Which planet is known as the Red Planet?",
+    correct_answer: "Mars",
+    incorrect_answers: ["Venus", "Jupiter", "Saturn"]
   }
-  
 ];
 
-// Ендпоінт для отримання питань (повертає JSON у форматі OpenTDB)
+// Ендпоінт для отримання питань
 app.get('/api/questions', (req, res) => {
   res.json({ response_code: 0, results: localQuestions });
 });
 
-// Додатковий ендпоінт для демонстрації обробки помилок (для звіту)
-app.get('/api/questions/error', (req, res) => {
-    res.status(404).json({ error: "Не знайдено" });
+// ОБРОБНИК ДЛЯ БУДЬ-ЯКОГО НЕІСНУЮЧОГО ШЛЯХУ (Універсальна 404 помилка)
+app.use((req, res) => {
+  res.status(404).json({ error: "Ресурс не знайдено" });
 });
 
 // Запуск сервера
